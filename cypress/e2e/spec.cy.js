@@ -1,4 +1,22 @@
 describe('template spec', () => {
+    before(() => {
+        // Register a new user before the tests run
+        cy.request({
+            method: 'POST',
+            url: '/register',
+            body: {
+                email: 'olivier@mail.com',
+                password: 'bestPassw0rd'
+            }
+        }).then((response) => {
+            expect(response.status).to.eq(201);
+            // Save the accessToken and userId for later use
+            Cypress.env('accessToken', response.body.accessToken);
+            Cypress.env('userId', response.body.user.id);
+        });
+        env.accesToc
+    });
+
     it('1 retrieve all posts', () => {
         cy.request('GET', 'http://localhost:3000/posts')
             .then((response) => {
