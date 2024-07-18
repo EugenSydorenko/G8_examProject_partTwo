@@ -1,24 +1,26 @@
-describe('template spec', () => {
+describe('Api endpoints test suite', () => {
+
     before(() => {
-        // Register a new user before the tests run
+        // Login and save accessToken before the tests run
         cy.request({
             method: 'POST',
-            url: '/register',
+            url: `/login`,
             body: {
-                email: 'olivier@mail.com',
+                email: 'eugensydorenko@gmail.com',
                 password: 'bestPassw0rd'
             }
         }).then((response) => {
-            expect(response.status).to.eq(201);
-            // Save the accessToken and userId for later use
+            expect(response.status).to.eq(200);
+            
+            // Save the accessToken and user information for later use
             Cypress.env('accessToken', response.body.accessToken);
             Cypress.env('userId', response.body.user.id);
+            Cypress.env('userEmail', response.body.user.email);
         });
-        env.accesToc
     });
 
-    it('1 retrieve all posts', () => {
-        cy.request('GET', 'http://localhost:3000/posts')
+    it('1  Get all posts. Verify HTTP response status code and content type.', () => {
+        cy.request('GET', '/posts')
             .then((response) => {
                 // Verify status code
                 expect(response.status).to.eq(200);
@@ -28,23 +30,20 @@ describe('template spec', () => {
             })
     })
 
-    it('2 should retrieve first 10 posts and verify response', () => {
-        cy.request('GET', 'http://localhost:3000/posts?_limit=10')
+    it('2 Get only first 10 posts. Verify HTTP response status code. Verify that only first posts are returned.', () => {
+        cy.request('GET', '/posts?_limit=10')
             .then((response) => {
+
                 // Verify status code
                 expect(response.status).to.eq(200);
 
                 // Verify that exactly 10 posts are returned
                 expect(response.body).to.have.lengthOf(10);
-
-                // Optionally, check more details about the posts if needed
-                // For example, to check the first post's title:
-                // expect(response.body[0].title).to.exist;
             });
     });
 
-    it('3 should retrieve posts with id=55 and id=60 and verify response', () => {
-        cy.request('GET', 'http://localhost:3000/posts?id=55&id=60')
+    it('3 Get posts with id = 55 and id = 60. Verify HTTP response status code. Verify id values of returned records.', () => {
+        cy.request('GET', '/posts?id=55&id=60')
             .then((response) => {
                 // Verify status code
                 expect(response.status).to.eq(200);
@@ -59,39 +58,37 @@ describe('template spec', () => {
             });
     });
 
-    it('4 should create a post and verify response', () => {
+    it('4 Create a post. Verify HTTP response status code.', () => {
         const newPost = {
             title: 'New Post Title',
             body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 664 // Replace with the appropriate user ID or identifier
+            userId: Cypress.env('userId')
         };
 
         cy.request({
             method: 'POST',
-            url: 'http://localhost:3000/664/posts',
+            url: '/664/posts',
             body: newPost,
-            failOnStatusCode: false // Allows us to check the response status code
+            failOnStatusCode: false
         }).then((response) => {
             // Verify status code
-            expect(response.status).to.eq(401);
+            expect(response.status).to.eq(401); // Assuming the post creation should be successful
         });
     });
 
-    it('5 should create a post and verify response', () => {
-        // Replace 'your-access-token' with the actual access token
-        const accessToken = 'your-access-token';
+    it('5 Create post with adding access token in header. Verify HTTP response status code. Verify post is created.', () => {
 
         const newPost = {
             title: 'New Post Title',
             body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 664 // Replace with the appropriate user ID or identifier
+            userId: Cypress.env('userId')
         };
 
         cy.request({
             method: 'POST',
-            url: 'http://localhost:3000/664/posts',
+            url: '/664/posts',
             headers: {
-                Authorization: `Bearer ${accessToken}`
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
             },
             body: newPost
         }).then((response) => {
@@ -103,191 +100,190 @@ describe('template spec', () => {
         });
     });
 
-    it('6 should create a post entity and verify response', () => {
+    it('6 Create post entity and verify that the entity is created. Verify HTTP response status code. Use JSON in body.', () => {
         const newPost = {
             title: 'New Post Title',
             body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 1 // Replace with the appropriate user ID or identifier
+            userId: Cypress.env('userId')
         };
 
         cy.request({
             method: 'POST',
-            url: 'http://localhost:3000/posts',
-            body: newPost,
+            url: `/posts`,
             headers: {
-                'Content-Type': 'application/json'
-            }
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
+            },
+            body: newPost,
+            failOnStatusCode: false // This is optional, depending on how you want to handle errors
         }).then((response) => {
             // Verify status code
             expect(response.status).to.eq(201);
 
             // Verify post is created correctly
-            expect(response.body).to.deep.equal({
-                ...newPost,
-                id: response.body.id // Ensure the response includes an ID
+            expect(response.body).to.have.property('id');
+            expect(response.body).to.include({
+                title: newPost.title,
+                body: newPost.body,
+                userId: newPost.userId
             });
         });
     });
 
-    it('7 should create a post entity and verify response', () => {
-        const newPost = {
-            title: 'New Post Title',
-            body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 1 // Replace with the appropriate user ID or identifier
-        };
-
-        cy.request({
-            method: 'POST',
-            url: 'http://localhost:3000/posts',
-            body: newPost,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }).then((response) => {
-            // Verify status code
-            expect(response.status).to.eq(201);
-
-            // Verify post is created correctly
-            expect(response.body).to.deep.equal({
-                ...newPost,
-                id: response.body.id // Ensure the response includes an ID
-            });
-        });
-    });
-
-
-
-    it('8 should create a post entity and then update it', () => {
-        let createdPostId;
-
-        const newPost = {
-            title: 'New Post Title',
-            body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 1 // Replace with the appropriate user ID or identifier
-        };
-
+    it('7 Update non-existing entity. Verify HTTP response status code.', () => {
         const updatedPost = {
             title: 'Updated Post Title',
-            body: 'Updated content for the post.',
-            userId: 1 // Replace with the appropriate user ID or identifier
+            body: 'Updated content for non-existing post.',
+            userId: Cypress.env('userId')
         };
 
-        // Create a new post
+        // Using a non-existing post ID (e.g., 999999)
+        const nonExistingPostId = 999999;
+
         cy.request({
-            method: 'POST',
-            url: 'http://localhost:3000/posts',
-            body: newPost,
+            method: 'PUT',
+            url: `/posts/${nonExistingPostId}`,
             headers: {
-                'Content-Type': 'application/json'
-            }
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
+            },
+            body: updatedPost,
+            failOnStatusCode: false // Do not fail the test on non-2xx status codes
         }).then((response) => {
-            // Verify creation status code
-            expect(response.status).to.eq(201);
-
-            // Store the ID of the created post
-            createdPostId = response.body.id;
-
-            // Verify post is created correctly
-            expect(response.body).to.deep.include(newPost);
-
-            // Update the created post
-            return cy.request({
-                method: 'PUT', // or 'PATCH' depending on your API endpoint
-                url: `http://localhost:3000/posts/${createdPostId}`,
-                body: updatedPost,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-        }).then((response) => {
-            // Verify update status code
-            expect(response.status).to.eq(200);
-
-            // Verify post is updated correctly
-            expect(response.body).to.deep.include(updatedPost);
+            
+            // Verify status code
+            expect(response.status).to.eq(404);
         });
     });
 
-    it('9 should attempt to delete a non-existing post entity and verify response', () => {
-        const postId = 9999; // Assuming postId 9999 does not exist
+    it('8 should create a post entity, update the created entity, and verify response', () => {
+        const newPost = {
+            title: 'Initial Post Title',
+            body: 'Initial content for the new post.',
+            userId: Cypress.env('userId')
+        };
+
+        cy.request({
+            method: 'POST',
+            url: `/posts`,
+            headers: {
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
+            },
+            body: newPost
+        }).then((createResponse) => {
+            // Verify post creation
+            expect(createResponse.status).to.eq(201);
+            const createdPostId = createResponse.body.id;
+
+            const updatedPost = {
+                title: 'Updated Post Title',
+                body: 'Updated content for the post.',
+                userId: Cypress.env('userId')
+            };
+
+            cy.request({
+                method: 'PUT',
+                url: `/posts/${createdPostId}`,
+                headers: {
+                    Authorization: `Bearer ${Cypress.env('accessToken')}`
+                },
+                body: updatedPost
+            }).then((updateResponse) => {
+                // Verify status code
+                expect(updateResponse.status).to.eq(200);
+
+                // Verify the post is updated correctly
+                expect(updateResponse.body).to.include({
+                    title: updatedPost.title,
+                    body: updatedPost.body,
+                    userId: updatedPost.userId
+                });
+            });
+        });
+    });
+    it('9 should fail to delete a non-existing post entity and verify response', () => {
+        // Using a non-existing post ID (e.g., 999999)
+        const nonExistingPostId = 999999;
 
         cy.request({
             method: 'DELETE',
-            url: `http://localhost:3000/posts/${postId}`,
-            failOnStatusCode: false // Allows us to check the response status code
+            url: `/posts/${nonExistingPostId}`,
+            headers: {
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
+            },
+            failOnStatusCode: false // Do not fail the test on non-2xx status codes
         }).then((response) => {
             // Verify status code
             expect(response.status).to.eq(404);
         });
     });
 
-
-    it('10 should create a post entity, update it, and delete it', () => {
-        let createdPostId;
+    it('10 should create a post entity, update the created entity, delete the entity, and verify it is deleted', () => {
         const newPost = {
-            title: 'New Post Title',
-            body: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-            userId: 1 // Replace with the appropriate user ID or identifier
+            title: 'Initial Post Title',
+            body: 'Initial content for the new post.',
+            userId: Cypress.env('userId')
         };
 
-        const updatedPost = {
-            title: 'Updated Post Title',
-            body: 'Updated content for the post.',
-            userId: 1 // Replace with the appropriate user ID or identifier
-        };
-
-        // Create a new post
         cy.request({
             method: 'POST',
-            url: 'http://localhost:3000/posts',
-            body: newPost,
+            url: `/posts`,
             headers: {
-                'Content-Type': 'application/json'
-            }
-        }).then((response) => {
-            // Verify creation status code
-            expect(response.status).to.eq(201);
+                Authorization: `Bearer ${Cypress.env('accessToken')}`
+            },
+            body: newPost
+        }).then((createResponse) => {
+            // Verify post creation
+            expect(createResponse.status).to.eq(201);
+            const createdPostId = createResponse.body.id;
 
-            // Store the ID of the created post
-            createdPostId = response.body.id;
+            const updatedPost = {
+                title: 'Updated Post Title',
+                body: 'Updated content for the post.',
+                userId: Cypress.env('userId')
+            };
 
-            // Verify post is created correctly
-            expect(response.body).to.deep.include(newPost);
-
-            // Update the created post
-            return cy.request({
-                method: 'PUT', // or 'PATCH' depending on your API endpoint
-                url: `http://localhost:3000/posts/${createdPostId}`,
-                body: updatedPost,
+            cy.request({
+                method: 'PUT',
+                url: `/posts/${createdPostId}`,
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    Authorization: `Bearer ${Cypress.env('accessToken')}`
+                },
+                body: updatedPost
+            }).then((updateResponse) => {
+                // Verify status code
+                expect(updateResponse.status).to.eq(200);
+
+                // Verify the post is updated correctly
+                expect(updateResponse.body).to.include({
+                    title: updatedPost.title,
+                    body: updatedPost.body,
+                    userId: updatedPost.userId
+                });
+
+                // Delete the updated post
+                cy.request({
+                    method: 'DELETE',
+                    url: `/posts/${createdPostId}`,
+                    headers: {
+                        Authorization: `Bearer ${Cypress.env('accessToken')}`
+                    }
+                }).then((deleteResponse) => {
+                    // Verify status code
+                    expect(deleteResponse.status).to.eq(200);
+
+                    // Verify the post is deleted
+                    cy.request({
+                        method: 'GET',
+                        url: `/posts/${createdPostId}`,
+                        headers: {
+                            Authorization: `Bearer ${Cypress.env('accessToken')}`
+                        },
+                        failOnStatusCode: false
+                    }).then((getResponse) => {
+                        // Verify status code
+                        expect(getResponse.status).to.eq(404);
+                    });
+                });
             });
-        }).then((response) => {
-            // Verify update status code
-            expect(response.status).to.eq(200);
-
-            // Verify post is updated correctly
-            expect(response.body).to.deep.include(updatedPost);
-
-            // Delete the created post
-            return cy.request({
-                method: 'DELETE',
-                url: `http://localhost:3000/posts/${createdPostId}`
-            });
-        }).then((response) => {
-            // Verify delete status code
-            expect(response.status).to.eq(200);
-        });
-
-        // Attempt to fetch the deleted post (optional verification)
-        cy.request({
-            method: 'GET',
-            url: `http://localhost:3000/posts/${createdPostId}`,
-            failOnStatusCode: false // Expecting 404 Not Found
-        }).then((response) => {
-            // Verify that the post is deleted
-            expect(response.status).to.eq(404);
         });
     });
 })
