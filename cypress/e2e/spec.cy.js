@@ -1,4 +1,7 @@
+import {emailModificationByAddingDate} from "../support/helper";
+
 describe('Api endpoints test suite', () => {
+    const newUserEmail = emailModificationByAddingDate('autotest@email.reg');
 
     before(() => {
         // Login and save accessToken before the tests run
@@ -6,12 +9,12 @@ describe('Api endpoints test suite', () => {
             method: 'POST',
             url: `/login`,
             body: {
-                email: 'eugensydorenko@gmail.com',
+                email: newUserEmail,
                 password: 'bestPassw0rd'
             }
         }).then((response) => {
             expect(response.status).to.eq(200);
-            
+
             // Save the accessToken and user information for later use
             Cypress.env('accessToken', response.body.accessToken);
             Cypress.env('userId', response.body.user.id);
@@ -148,7 +151,7 @@ describe('Api endpoints test suite', () => {
             body: updatedPost,
             failOnStatusCode: false // Do not fail the test on non-2xx status codes
         }).then((response) => {
-            
+
             // Verify status code
             expect(response.status).to.eq(404);
         });
